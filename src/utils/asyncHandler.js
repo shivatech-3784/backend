@@ -1,7 +1,7 @@
 //The intent is exactly the same as in your earlier example: wrap any sync or async Express route/controller so that if it throws or returns a rejected promise, the error gets forwarded to your centralized error‑handling middleware (next(err)).
 
 const asyncHandler = (requestHandler) =>{
-    (req,res,next) =>{
+    return (req,res,next) =>{
         Promise.resolve(requestHandler(req,res,next))
         .catch((err)=>next(err))
     }

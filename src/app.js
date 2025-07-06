@@ -19,4 +19,17 @@ app.use(express.static("public")) //which makes public assests or to store as fo
 app.use(cookieParser())
 
 
+// use routes
+
+import router from './routes/user.routes.js'
+
+
+// route declaration
+//here we cannot use app.get because we separated the routes
+
+app.use("/api/v1/users",router)
+
+//http://localhost:8000/api/v1/users/register this is the way url is made
+
+
 export {app}
