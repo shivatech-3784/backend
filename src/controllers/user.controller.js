@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js"
 import { uploadFileOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
 
 
 const GenerateAcessAndRefreshToken = async (userId) => {
@@ -271,15 +272,15 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
 
-    const { fullName, email } = req.body
+    const { fullname, email } = req.body
 
-    if (!fullName || !email) {
+    if (!fullname || !email) {
         throw new ApiError(400, "All fields are required")
     }
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
-            fullName,
+            fullname,
             email: email
         },
         { new: true }
@@ -435,7 +436,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         {
             $project:{
-                fullName:1,
+                fullname:1,
                 username:1,
                 subscribersCount:1,
                 channelsSubscribedToCount:1,
@@ -459,6 +460,62 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     )
 })
 
+const getUserWatchHistory = asyncHandler(async(req,res) =>{
+
+    const user = User.aggregate([
+        {
+            $match:{
+               _id: new mongoose.Schema.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup:{
+                from:"videos",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory",
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",// we got everything from user model with this lookup we dont need all those we need only watch history so we add another pipeline what ever we need we want to keep it in owner so we are writing one more pipeline inside 
+
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullname:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                            
+                        }
+                    },
+                     // we get array from this to get object from that array we used addfield
+                    {
+                        $addFields:{
+                            owner:{
+                                $first:owner
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res.
+    status(201).
+    json(
+        new ApiResponse(200,
+            user[0].watchHistory,
+            "WatchHistory of User is fetched Successfully")
+    )
+})
+
 export {
     registerUser,
     loginUser,
@@ -469,5 +526,6 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getUserWatchHistory
 }
